@@ -1,0 +1,40 @@
+# Virtual environment
+project_venv/
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Do not commit Cursor commands, instructions, or plan files
+.cursor/
+instructions.md
+**/instructions.md
+*plan*
+**/*plan*
+*.plan
+
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# OS
+.DS_Store
+Thumbs.db
