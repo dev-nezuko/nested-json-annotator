@@ -72,11 +72,20 @@ def main() -> int:
         print(f"Error: Invalid JSON in input file: {e}", file=sys.stderr)
         return 1
 
-    result = substitute(input_data, max_depth)
+    except (OSError, UnicodeError, RecursionError) as e:
+        print(f"Error: Cannot read input: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        result = substitute(input_data, max_depth)
+        rendered = json.dumps(result, ensure_ascii=False, allow_nan=False)
+    except (ValueError, TypeError, RecursionError) as e:
+        print(f"Error: Cannot transform input: {e}", file=sys.stderr)
+        return 1
 
     try:
         with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(result, f)
+            f.write(rendered)
     except OSError as e:
         print(f"Error: Cannot write output file: {e}", file=sys.stderr)
         return 1

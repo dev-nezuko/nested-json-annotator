@@ -1,32 +1,65 @@
-# SuperDuperDB_coding_task
+# Nested JSON annotator
 
-This project provides a JSON substitution utility that recursively transforms dictionary structures by wrapping leaf values in a typed format: `{"_content": value, "_type": "<class '...'>"}`.
+A small Python command-line exercise that adds Python type labels to JSON leaf values. It recursively visits dictionaries; lists remain whole leaf values. The `SuperDuperDB/` package name reflects the original coding-task context, not a database integration.
 
-## Usage
+## What it produces
 
-From the project root:
+Input:
 
-```bash
-python3 SuperDuperDB/substitute.py <input_file> [<max_depth>] <output_file>
+```json
+{"score":7,"profile":{"active":true},"tags":["demo"]}
 ```
 
-- **input_file**: Path to a JSON file (e.g. `SuperDuperDB/input.json`).
-- **max_depth**: Optional. Maximum recursion depth; beyond this, nested dicts are left unchanged.
-- **output_file**: Path where the transformed JSON will be written.
+Unlimited-depth output:
 
-### Examples
-
-```bash
-# Transform full structure (no depth limit)
-python3 SuperDuperDB/substitute.py SuperDuperDB/input.json SuperDuperDB/output.json
-
-# Limit substitution to depth 1
-python3 SuperDuperDB/substitute.py SuperDuperDB/input.json 1 SuperDuperDB/output.json
+```json
+{
+  "score":{"_content":7,"_type":"<class 'int'>"},
+  "profile":{"active":{"_content":true,"_type":"<class 'bool'>"}},
+  "tags":{"_content":["demo"],"_type":"<class 'list'>"}
+}
 ```
 
-## Running tests
+Type names are Python representations, not JSON Schema types. `null` becomes `<class 'NoneType'>`. Empty dictionaries remain empty; dictionaries inside a list are not traversed. A scalar root can also be wrapped.
 
-```bash
-pip install -r requirements.txt
-pytest
+## Run without dependencies
+
+Use Python 3.11+ from the repository root:
+
+```sh
+python3 SuperDuperDB/substitute.py SuperDuperDB/input.json /tmp/annotated.json
+python3 SuperDuperDB/substitute.py SuperDuperDB/input.json 1 /tmp/annotated-depth1.json
 ```
+
+The positional order remains `input_file [max_depth] output_file`. Omit depth for full dictionary recursion; depth must be a nonnegative integer. The bundled input/output files use fictional sample data.
+
+| Depth | Example `{"a":1,"b":{"c":2}}` |
+| --- | --- |
+| `0` | Unchanged |
+| `1` | Wrap `a`; leave `b.c` unchanged |
+| `2` or omitted | Wrap both `a` and `b.c` |
+
+## Python use
+
+```python
+from SuperDuperDB.substitute import substitute
+
+source = {"metrics": {"count": 3}}
+result = substitute(source)
+assert source == {"metrics": {"count": 3}}
+```
+
+Visited dictionaries are rebuilt instead of mutated. Unvisited values and leaf containers can still share references with the input; this is not a deep-copy API. Reapplying the transform wraps its own metadata, so it is not idempotent.
+
+## Checks and limits
+
+```sh
+python3 -m pip install -r requirements.txt
+python3 -m pytest -q
+```
+
+All 24 tests pass, covering leaf types, depth boundaries, existing CLI behavior, Unicode, non-mutating dictionaries and invalid input preserving an existing output. Runtime uses only the standard library; pytest is a development dependency.
+
+The CLI reports input/read/encoding/transformation failures before opening its output. Nonfinite values such as `NaN` are rejected during serialization. A write failure can still leave a partial file: output replacement is not atomic. The whole JSON document and rendered result live in memory, Python recursion limits apply, and the tool does not stream or validate an application schema.
+
+This overlaps with [json-field-replacer](https://github.com/dev-nezuko/json-field-replacer), but has different root-value, mutation and depth semantics. Keep one representative utility in a portfolio rather than presenting the two as separate large systems.
